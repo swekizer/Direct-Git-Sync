@@ -26,7 +26,7 @@ export default class GithubSyncPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'show-sync-status',
-			name: 'Show pending changes',
+			name: 'Show sync history',
 			callback: () => {
 				new SyncModal(this.app, this).open();
 			}
