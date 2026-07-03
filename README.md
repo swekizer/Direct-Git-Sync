@@ -38,18 +38,20 @@ The plugin keeps the workflow intentionally small:
 1. Open `Settings -> Community plugins -> Browse`.
 2. Search for `Direct Git Sync`.
 3. Click `Install`, then `Enable`.
+4. Or visit website : https://community.obsidian.md/plugins/direct-git-sync to download.
+<img width="1446" height="941" alt="image" src="https://github.com/user-attachments/assets/2c415849-d9f7-4282-b167-ec219551bb2f" />
 
-![Screenshot placeholder: plugin search in Obsidian community plugins](docs/images/install-plugin-search.png)
-Caption: Search for `Direct Git Sync` in Obsidian's Community Plugins browser, then install and enable it.
+
+### From BRAT
+1. Install the BRAT plugin enable it.
+2. Add this github repo's link to 'Add Beta Plugin'
+3. Select Latest Version
+4. Click 'Add Plugin'
+<img width="707" height="482" alt="image" src="https://github.com/user-attachments/assets/7e54e1cf-7e2e-4a23-b9fc-2ad6bba7b7b4" />
 
 ### Manual install
 
 Download these files from the latest GitHub release into:
-
-```text
-<your vault>/.obsidian/plugins/direct-git-sync/
-```
-
 Files required:
 
 - `main.js`
@@ -58,7 +60,8 @@ Files required:
 
 Then enable the plugin in `Settings -> Community plugins`.
 
-![Screenshot placeholder: GitHub release assets](docs/images/release-assets.png)
+<img width="1162" height="682" alt="image" src="https://github.com/user-attachments/assets/41533cc4-7cd3-4d89-aa07-f9b67fd383b1" />
+
 Caption: The GitHub release should include `main.js`, `manifest.json`, and `styles.css` for manual installation.
 
 ## Setup
@@ -70,31 +73,39 @@ Create a private GitHub repository for your vault. A typical URL looks like:
 ```text
 https://github.com/your-username/your-repo.git
 ```
-
-![Screenshot placeholder: GitHub repository URL](docs/images/github-repo-url.png)
+<img width="1917" height="224" alt="image" src="https://github.com/user-attachments/assets/90d43610-ac78-48bf-9ce0-ba20e98f9fad" />
 Caption: Copy your repository URL from GitHub. This is the value you will paste into the plugin settings.
 
 ### 2. Create a personal access token
 
 Create a GitHub token that can read and write the repository.
-
+Steps:
+1. Open Settings
+2. Open Credentials under Access
+<img width="396" height="480" alt="image" src="https://github.com/user-attachments/assets/3479fcf4-65cb-4a7c-b25d-c1a97e5de852" />
+3. Click on Personal access tokens (classic)
+4. Click on Generate new token (classic).
+5. Write any title under note.
+6. Under Expiration select no expiration
+7. In Select scope section check the repo checkbox
+8. Then click generate token at the end of the page
+9. Copy the token somewhere face as you will not be able to see it again
 For a classic token, the `repo` scope is enough.
 
-![Screenshot placeholder: GitHub personal access token setup](docs/images/github-token.png)
-Caption: Create a GitHub personal access token with repository access, then copy it before leaving the page.
-
+<img width="1650" height="447" alt="image" src="https://github.com/user-attachments/assets/c604d062-2313-4c82-be01-d8f1840a9741" />
+Caption: Copy the token and store it somewhere safe
 ### 3. Configure the plugin
 
 Open `Settings -> Direct Git Sync` and fill in:
 
 - `GitHub repository URL`
 - `Personal access token`
-- `Author name`
-- `Author email`
+- `Author name` (Any name will work)
+- `Author email` (Any email will work)
 
 You can also enable auto-sync and add extra ignore rules there.
 
-![Screenshot placeholder: Direct Git Sync settings](docs/images/plugin-settings.png)
+<img width="957" height="857" alt="image" src="https://github.com/user-attachments/assets/060a2105-cc35-4df4-9ce2-f8f4f619db0b" />
 Caption: Paste your repository URL and token into Direct Git Sync settings, then save your author details and optional sync preferences.
 
 ## How sync works
@@ -140,17 +151,12 @@ Open it from the command palette:
 Direct Git Sync: Show sync history
 ```
 
-![Screenshot placeholder: sync history modal](docs/images/sync-history.png)
-Caption: The sync history modal shows the last successful sync time along with recent sync commits and short hashes.
-
 ## Auto sync
 
 You can enable automatic sync in settings and choose an interval in minutes.
-
 When enabled, the plugin periodically runs the same sync flow in the background.
-
-![Screenshot placeholder: auto sync setting](docs/images/auto-sync.png)
-Caption: Turn on auto-sync in settings to run Direct Git Sync on a recurring interval.
+<img width="951" height="262" alt="image" src="https://github.com/user-attachments/assets/13f5b5b4-27dc-4c25-a327-279fe98510cd" />
+Caption: Auto Sync Feature
 
 ## Ignored files
 
@@ -158,7 +164,7 @@ The plugin automatically ignores a few vault-local paths such as workspace state
 
 You can add your own ignore rules in plugin settings, one path per line. These are written into the vault `.gitignore`.
 
-![Screenshot placeholder: ignored paths setting](docs/images/ignored-paths.png)
+<img width="952" height="127" alt="image" src="https://github.com/user-attachments/assets/15a4e1bc-a810-4d50-9bd0-ce15f04bb2cb" />
 Caption: Add extra ignored paths here when you do not want certain vault files or plugin folders committed to Git.
 
 ## Security and storage
