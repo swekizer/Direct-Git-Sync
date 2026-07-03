@@ -1,7 +1,7 @@
 {
 	"id": "direct-git-sync",
 	"name": "Direct Git Sync",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"minAppVersion": "0.15.0",
 	"description": "Sync your vault natively with a private GitHub repository on both Desktop and Mobile.",
 	"author": "swekizer",
