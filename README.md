@@ -1,4 +1,4 @@
-# Obsidian Direct Git Sync
+# Obsidian Direct GitHub Sync
 
 This plugin allows you to seamlessly sync your Obsidian vault with a private Git repository across both **Desktop** and **Mobile (iOS/Android)**.
 
