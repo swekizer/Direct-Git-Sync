@@ -1,9 +1,9 @@
-import {Notice, Plugin} from 'obsidian';
-import {DEFAULT_SETTINGS, GithubSyncSettings, GithubSyncSettingTab} from "./settings";
+import { Notice, Plugin } from 'obsidian';
+import { DEFAULT_SETTINGS, GithubSyncSettings, GithubSyncSettingTab } from './settings';
 
-import { ObsidianFS } from "./fs";
-import { GitManager } from "./gitManager";
-import { SyncModal } from "./syncModal";
+import { ObsidianFS } from './fs';
+import { GitManager } from './gitManager';
+import { SyncModal } from './syncModal';
 
 export default class GithubSyncPlugin extends Plugin {
 	settings: GithubSyncSettings;
@@ -34,15 +34,14 @@ export default class GithubSyncPlugin extends Plugin {
 
 		this.addSettingTab(new GithubSyncSettingTab(this.app, this));
 
-		// Status bar
 		this.statusBarItemEl = this.addStatusBarItem();
 		this.setStatus('idle');
 
-		// Start auto-sync if enabled
 		this.restartAutoSync();
 
-		// Track local changes to avoid deep status checks when idle
-		const setLocalChangesTrue = () => { this.localChangesExist = true; };
+		const setLocalChangesTrue = () => {
+			this.localChangesExist = true;
+		};
 		this.registerEvent(this.app.vault.on('modify', setLocalChangesTrue));
 		this.registerEvent(this.app.vault.on('create', setLocalChangesTrue));
 		this.registerEvent(this.app.vault.on('delete', setLocalChangesTrue));
@@ -55,10 +54,10 @@ export default class GithubSyncPlugin extends Plugin {
 
 	setStatus(state: 'idle' | 'syncing' | 'failed' | 'unconfigured', detail?: string) {
 		const labels = {
-			idle: 'Git: ✓ synced',
-			syncing: `Git: ⟳ ${detail || 'syncing...'}`,
-			failed: 'Git: ✗ sync failed',
-			unconfigured: 'Git: ⚠ not configured',
+			idle: 'Git: synced',
+			syncing: `Git: ${detail || 'syncing...'}`,
+			failed: 'Git: sync failed',
+			unconfigured: 'Git: not configured',
 		};
 		this.statusBarItemEl.setText(labels[state]);
 	}
@@ -79,21 +78,19 @@ export default class GithubSyncPlugin extends Plugin {
 			this.isSyncing = true;
 			this.setStatus('syncing', 'verifying connection...');
 
-			// 0. Verify credentials and repo before proceeding
 			try {
 				await this.gitManager.getRemoteInfo(this.settings.githubRepoUrl, this.settings.githubPat);
 			} catch (e: unknown) {
-				const err = e as { statusCode?: number, message?: string };
+				const err = e as { statusCode?: number; message?: string };
 				let msg = 'Connection failed';
-				// Isomorphic-git throws HttpError with statusCode, but we fallback to message matching just in case
 				if (err.statusCode === 401 || err.statusCode === 403 || err.message?.includes('401') || err.message?.includes('403')) {
-					msg = 'Authentication failed — check your GitHub token.';
+					msg = 'Authentication failed - check your GitHub token.';
 				} else if (err.statusCode === 404 || err.message?.includes('404')) {
-					msg = 'Repository not found — check your GitHub Repository URL.';
+					msg = 'Repository not found - check your GitHub repository URL.';
 				} else {
 					msg = `Connection error: ${err.message || String(e)}`;
 				}
-				new Notice(`❌ ${msg}`, 7000);
+				new Notice(msg, 7000);
 				this.setStatus('failed');
 				this.isSyncing = false;
 				return;
@@ -103,18 +100,16 @@ export default class GithubSyncPlugin extends Plugin {
 			this.setStatus('syncing', 'starting...');
 			this.gitManager.setAuthor(this.settings.authorName || 'Obsidian User', this.settings.authorEmail || 'user@example.com');
 
-			// 1. Init/Clone fallback
 			this.setStatus('syncing', 'initializing...');
 			const localBackups = await this.gitManager.initOrClone(this.settings.githubRepoUrl, this.settings.githubPat);
 			if (localBackups.length > 0) {
 				new Notice(
-					`⚠️ First-time setup: ${localBackups.length} local file(s) were backed up before being overwritten by remote.\n` +
-					localBackups.map(f => `• ${f}`).join('\n'),
+					`First-time setup: ${localBackups.length} local file(s) were backed up before being overwritten by remote.\n` +
+					localBackups.map((file) => `- ${file}`).join('\n'),
 					12000
 				);
 			}
 
-			// 2. Stage & Commit (skip if automated sync and no local changes detected)
 			if (!isAuto || this.localChangesExist) {
 				this.setStatus('syncing', 'staging...');
 				new Notice('Staging changes...');
@@ -128,28 +123,25 @@ export default class GithubSyncPlugin extends Plugin {
 				console.debug('[DirectGitSync] Skipping local status check; no changes detected.');
 			}
 
-			// 3. Fetch & Merge
 			this.setStatus('syncing', 'fetching...');
 			new Notice('Fetching from GitHub...');
 			const fetchHead = await this.gitManager.fetch(this.settings.githubRepoUrl, this.settings.githubPat);
-			
+
 			this.setStatus('syncing', 'merging...');
 			new Notice('Merging changes...');
 			const conflictCopies = await this.gitManager.merge(fetchHead);
 
 			if (conflictCopies.length > 0) {
-				// Conflict resolution: commit the staged files (local kept + remote copies)
 				this.setStatus('syncing', 'resolving conflicts...');
 				await this.gitManager.commit(`Sync: conflict resolved on ${new Date().toLocaleString()}`);
 				new Notice(
-					`⚠️ Conflict in ${conflictCopies.length} file(s).\n` +
-					`Your local version was kept. Remote version saved as:\n` +
-					conflictCopies.map(f => `• ${f}`).join('\n'),
+					`Conflict in ${conflictCopies.length} file(s).\n` +
+					'Your local version was kept. Remote version saved as:\n' +
+					conflictCopies.map((file) => `- ${file}`).join('\n'),
 					12000
 				);
 			}
 
-			// 4. Push
 			this.setStatus('syncing', 'pushing...');
 			new Notice('Pushing to GitHub...');
 			await this.gitManager.push(this.settings.githubRepoUrl, this.settings.githubPat);
@@ -158,7 +150,7 @@ export default class GithubSyncPlugin extends Plugin {
 			await this.saveSettings();
 
 			this.setStatus('idle');
-			new Notice('Sync complete! ✔️');
+			new Notice('Sync complete!');
 		} catch (e: unknown) {
 			console.error(e);
 			this.localChangesExist = true;
@@ -197,5 +189,3 @@ export default class GithubSyncPlugin extends Plugin {
 		await this.gitManager.updateGitIgnore(this.settings.ignoredPaths);
 	}
 }
-
-
