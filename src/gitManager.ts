@@ -294,4 +294,132 @@ export class GitManager {
             onAuth: () => token ? { username: 'x-access-token', password: token } : {}
         });
     }
+
+    // Returns files where workdir status differs from index (pending changes)
+    async getPendingFiles(): Promise<string[]> {
+        const matrix = await this.getStatusMatrix();
+        const pending: string[] = [];
+        for (const row of matrix) {
+            const filepath = row[0];
+            const workdirStatus = row[2];
+            const stageStatus = row[3];
+            if (this.isIgnored(filepath)) continue;
+            if (workdirStatus !== stageStatus) pending.push(filepath);
+        }
+        return pending.sort();
+    }
+
+    async stageFile(filepath: string) {
+        if (this.isIgnored(filepath)) return;
+        await git.add({ fs: this.fs, dir: this.dir, filepath });
+    }
+
+    async unstageFile(filepath: string) {
+        // Reset index for the file to HEAD by reading blob from HEAD and writing to index
+        try {
+            const head = await git.resolveRef({ fs: this.fs, dir: this.dir, ref: 'HEAD' });
+            const { blob } = await git.readBlob({ fs: this.fs, dir: this.dir, oid: head, filepath });
+            // write blob to working dir and add to index
+            await this.fs.promises.writeFile(filepath, blob);
+            await git.add({ fs: this.fs, dir: this.dir, filepath });
+        } catch (e) {
+            // If file doesn't exist in HEAD, remove it
+            try {
+                await this.fs.promises.unlink(filepath);
+                await git.remove({ fs: this.fs, dir: this.dir, filepath });
+            } catch {
+                // ignore
+            }
+        }
+    }
+
+    async discardLocalChanges(filepath: string) {
+        // Replace working copy with HEAD version or delete if not present in HEAD
+        try {
+            const head = await git.resolveRef({ fs: this.fs, dir: this.dir, ref: 'HEAD' });
+            const { blob } = await git.readBlob({ fs: this.fs, dir: this.dir, oid: head, filepath });
+            await this.fs.promises.writeFile(filepath, blob);
+            // stage restored file
+            await git.add({ fs: this.fs, dir: this.dir, filepath });
+        } catch (e) {
+            // If not in HEAD, delete working copy
+            try {
+                await this.fs.promises.unlink(filepath);
+            } catch {
+                // ignore
+            }
+            try {
+                await git.remove({ fs: this.fs, dir: this.dir, filepath });
+            } catch {
+                // ignore
+            }
+        }
+    }
+
+    // Recursively list all files in the working directory
+    private async listWorkingFilesRecursive(dirPath = ''): Promise<string[]> {
+        const result: string[] = [];
+        const entries = await this.fs.promises.readdir(dirPath);
+        for (const name of entries) {
+            const full = dirPath === '' ? name : `${dirPath}/${name}`;
+            try {
+                const stat = await this.fs.promises.stat(full);
+                if (stat.isDirectory()) {
+                    const sub = await this.listWorkingFilesRecursive(full);
+                    result.push(...sub);
+                } else {
+                    result.push(full);
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
+        return result;
+    }
+
+    // Returns mapping of conflict copies to their original file
+    async getConflictCopies(): Promise<{ original: string; copy: string }[]> {
+        const allFiles = await this.listWorkingFilesRecursive('');
+        const pattern = /(.*) \(remote conflict - \d{4}-\d{2}-\d{2}\)(\..*)?$/;
+        const pairs: { original: string; copy: string }[] = [];
+        for (const f of allFiles) {
+            const match = f.match(pattern);
+            if (match) {
+                const base = match[1];
+                const ext = match[2] || '';
+                const original = `${base}${ext}`;
+                pairs.push({ original, copy: f });
+            }
+        }
+        return pairs;
+    }
+
+    async acceptRemoteCopy(original: string, copyPath: string) {
+        try {
+            const content = await this.fs.promises.readFile(copyPath);
+            await this.fs.promises.writeFile(original, content);
+            // stage original
+            await git.add({ fs: this.fs, dir: this.dir, filepath: original });
+            // remove copy from fs and index
+            try {
+                await this.fs.promises.unlink(copyPath);
+            } catch {}
+            try {
+                await git.remove({ fs: this.fs, dir: this.dir, filepath: copyPath });
+            } catch {}
+        } catch (e) {
+            console.error('Failed to accept remote copy', e);
+            throw e;
+        }
+    }
+
+    async removeConflictCopy(copyPath: string) {
+        try {
+            await this.fs.promises.unlink(copyPath);
+        } catch {}
+        try {
+            await git.remove({ fs: this.fs, dir: this.dir, filepath: copyPath });
+        } catch {}
+    }
 }
+
