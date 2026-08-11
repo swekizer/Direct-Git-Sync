@@ -14,7 +14,8 @@ export class GitManager {
         this.fs = fs;
         this.configDir = configDir;
         this.pluginId = pluginId;
-        this.dir = '/';
+        // isomorphic-git + ObsidianFS normalize paths without a leading slash; root is represented by an empty string
+        this.dir = '';
         this.ignoredPaths = [];
         this.author = { name: 'Obsidian User', email: 'user@example.com' };
     }
@@ -41,18 +42,23 @@ export class GitManager {
                 .split('\n')
                 .map(line => line.trim())
                 .filter(line => line.length > 0 && !line.startsWith('#'))
-        ].map(path => path.toLowerCase());
+        ].map(p => p.replace(/\\/g, '/').replace(/^\//, ''));
+
 
         await this.fs.promises.writeFile('.gitignore', new TextEncoder().encode(content));
     }
 
     isIgnored(filepath: string): boolean {
-        const lowerFilepath = filepath.toLowerCase();
-        return this.ignoredPaths.some(pattern =>
-            pattern.endsWith('/')
-                ? lowerFilepath.startsWith(pattern) || lowerFilepath === pattern.slice(0, -1)
-                : lowerFilepath === pattern
-        );
+        const normalizedFilepath = filepath.replace(/\\/g, '/').replace(/^\//, '');
+        return this.ignoredPaths.some(pattern => {
+            const normalizedPattern = pattern.replace(/\\/g, '/').replace(/^\//, '');
+            if (normalizedPattern.endsWith('/')) {
+                const dirPattern = normalizedPattern.slice(0, -1);
+                return normalizedFilepath === dirPattern || normalizedFilepath.startsWith(normalizedPattern) || normalizedFilepath.startsWith(dirPattern + '/');
+            } else {
+                return normalizedFilepath === normalizedPattern;
+            }
+        });
     }
 
     setAuthor(name: string, email: string) {
@@ -85,7 +91,7 @@ export class GitManager {
         return await git.getRemoteInfo({
             http,
             url,
-            onAuth: () => ({ username: token })
+            onAuth: () => token ? { username: 'x-access-token', password: token } : {}
         });
     }
 
@@ -102,7 +108,7 @@ export class GitManager {
                 dir: this.dir,
                 url,
                 remote: 'origin',
-                onAuth: () => ({ username: token }),
+                onAuth: () => token ? { username: 'x-access-token', password: token } : {},
                 singleBranch: true
             });
 
@@ -224,7 +230,7 @@ export class GitManager {
             dir: this.dir,
             url,
             remote: 'origin',
-            onAuth: () => ({ username: token }),
+            onAuth: () => token ? { username: 'x-access-token', password: token } : {},
             singleBranch: true
         });
         return result.fetchHead;
@@ -285,7 +291,7 @@ export class GitManager {
             http,
             dir: this.dir,
             remote: 'origin',
-            onAuth: () => ({ username: token })
+            onAuth: () => token ? { username: 'x-access-token', password: token } : {}
         });
     }
 }

@@ -9,11 +9,14 @@ export const obsidianHttpClient = {
             try {
                 // Using dynamic import prevents esbuild from crashing the mobile plugin load
                 type RequestParams = { url: string, method?: string, headers?: Record<string, string>, body?: Iterable<Uint8Array> | AsyncIterable<Uint8Array> };
-                type NodeHttp = { request?: (params: RequestParams) => Promise<unknown> };
-                const nodeHttp = (await import('isomorphic-git/http/node')) as unknown as NodeHttp & { default?: NodeHttp };
-                const httpClient = nodeHttp.default || nodeHttp;
-                if (httpClient.request) {
-                    const result = await httpClient.request(params);
+                // isomorphic-git/http/node may export a function (default export) or an object with a `request` method.
+                const nodeHttp = (await import('isomorphic-git/http/node')) as unknown;
+                const httpClient = (nodeHttp && (nodeHttp as any).default) || nodeHttp;
+                if (typeof httpClient === 'function') {
+                    const result = await (httpClient as any)(params);
+                    return result as { url: string, method?: string, headers: Record<string, string>, body?: AsyncIterableIterator<Uint8Array>, statusCode: number, statusMessage: string };
+                } else if (httpClient && typeof (httpClient as any).request === 'function') {
+                    const result = await (httpClient as any).request(params);
                     return result as { url: string, method?: string, headers: Record<string, string>, body?: AsyncIterableIterator<Uint8Array>, statusCode: number, statusMessage: string };
                 }
             } catch (e) {
@@ -73,13 +76,17 @@ const bufferedHttpClient = {
             method,
             headers: response.headers,
             body: (async function* () {
-                if (response.arrayBuffer) {
-                    await Promise.resolve(); // fix for: Async generator function has no 'await' expression
-                    yield new Uint8Array(response.arrayBuffer);
-                }
-            })(),
-            statusCode: response.status,
-            statusMessage: response.status.toString()
+            // Ensure we await the arrayBuffer to obtain the bytes rather than yielding a function reference.
+            if (typeof (response as any).arrayBuffer === 'function') {
+                const buf = await (response as any).arrayBuffer();
+                yield new Uint8Array(buf);
+            } else if ((response as any).arrayBuffer) {
+                // Some environments might already have a prepared ArrayBuffer
+                yield new Uint8Array((response as any).arrayBuffer);
+            }
+        })(),
+        statusCode: response.status,
+        statusMessage: String(response.status)
         };
     }
 };

@@ -1,5 +1,5 @@
 import {App, PluginSettingTab, Setting} from "obsidian";
-import GithubSyncPlugin from "./main";
+import type GithubSyncPlugin from "./main";
 
 export interface GithubSyncSettings {
 	githubRepoUrl: string;
