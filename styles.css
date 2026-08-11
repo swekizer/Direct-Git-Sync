@@ -3,6 +3,37 @@
 This CSS file will be included with your plugin, and
 available in the app when your plugin is enabled.
 
-If your plugin does not need CSS, delete this file.
-
 */
+
+.sync-modal-header .mod-cta { }
+
+.sync-file-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    background: var(--background-primary);
+}
+
+.sync-file-row.conflict-row {
+    border-left: 4px solid var(--interactive-danger); /* red */
+}
+
+.sync-file-row .mod-cta {
+    background-color: var(--interactive-accent);
+}
+
+.sync-file-row .mod-danger {
+    background-color: var(--interactive-danger);
+}
+
+.sync-file-row .mod-warning {
+    background-color: var(--interactive-warning);
+}
+
+.sync-modal-content h3 {
+    margin: 0 0 6px 0;
+}
+

@@ -1,4 +1,4 @@
-import { App, Modal } from 'obsidian';
+import { App, Modal, Notice } from 'obsidian';
 import GithubSyncPlugin from './main';
 
 export class SyncModal extends Modal {
@@ -35,10 +35,13 @@ export class SyncModal extends Modal {
 			cls: 'sync-modal-content',
 			attr: { style: 'max-height: 60vh; overflow-y: auto; padding-right: 10px;' }
 		});
-
+		
+		// Render pending changes and conflicts first so users can act before committing
+		await this.renderPendingAndConflicts(content);
+		
 		await this.renderHistory(content);
 	}
-
+	
 	private async renderHistory(container: HTMLElement) {
 		const lastSyncTime = this.plugin.settings.lastSyncTime;
 		const syncStatusDiv = container.createDiv({
@@ -96,6 +99,108 @@ export class SyncModal extends Modal {
 			container.lastElementChild?.remove();
 			container.createEl('p', { text: 'Error loading history: ' + (e as Error).message });
 		}
+	}
+
+	private async renderPendingAndConflicts(container: HTMLElement) {
+		const pendingSection = container.createDiv({ attr: { style: 'margin-bottom: 1rem;' } });
+		pendingSection.createEl('h3', { text: 'Pending changes', attr: { style: 'margin-bottom: 0.5rem;' } });
+		const pendingList = pendingSection.createDiv({ attr: { style: 'display: flex; flex-direction: column; gap: 6px;' } });
+
+		try {
+			const pending = await this.plugin.gitManager.getPendingFiles();
+			if (pending.length === 0) {
+				pendingList.createEl('p', { text: 'No pending changes.' });
+			} else {
+				for (const file of pending) {
+					const row = pendingList.createDiv({ cls: 'sync-file-row' });
+					row.createDiv({ text: file, attr: { style: 'flex: 1; word-break: break-all;' } });
+
+					const actions = row.createDiv({ attr: { style: 'display:flex; gap: 6px; align-items: center;' } });
+					const stageBtn = actions.createEl('button', { text: 'Stage', cls: 'mod-cta' });
+					stageBtn.onclick = async () => {
+						await this.plugin.gitManager.stageFile(file);
+						await this.refreshContent(container);
+					};
+
+					const discardBtn = actions.createEl('button', { text: 'Discard', cls: 'mod-warning' });
+					discardBtn.onclick = async () => {
+						if (!confirm(`Discard local changes to ${file}?`)) return;
+						await this.plugin.gitManager.discardLocalChanges(file);
+						await this.refreshContent(container);
+					};
+
+					const openBtn = actions.createEl('button', { text: 'Open' });
+					openBtn.onclick = async () => {
+						const af = this.app.vault.getAbstractFileByPath(file);
+						if (af) {
+							// open in new leaf
+							await this.app.workspace.getLeaf().openFile(af as any);
+						} else {
+							new Notice('File not found in vault: ' + file);
+						}
+					};
+				}
+			}
+		} catch (e) {
+			pendingList.createEl('p', { text: 'Error loading pending files: ' + (e as Error).message });
+		}
+
+		// Conflicts
+		const conflictsSection = container.createDiv({ attr: { style: 'margin-bottom: 1rem;' } });
+		conflictsSection.createEl('h3', { text: 'Conflicted files', attr: { style: 'margin-bottom: 0.5rem;' } });
+		const conflictsList = conflictsSection.createDiv({ attr: { style: 'display: flex; flex-direction: column; gap: 6px;' } });
+
+		try {
+			const copies = await this.plugin.gitManager.getConflictCopies();
+			if (copies.length === 0) {
+				conflictsList.createEl('p', { text: 'No conflicts detected.' });
+			} else {
+				for (const p of copies) {
+					const row = conflictsList.createDiv({ cls: 'sync-file-row conflict-row' });
+					const info = row.createDiv({ attr: { style: 'flex: 1; display:flex; flex-direction: column; gap:4px;' } });
+					info.createDiv({ text: `Original: ${p.original}` });
+					info.createDiv({ text: `Remote copy: ${p.copy}`, attr: { style: 'color: var(--text-muted); font-size: 0.9em;' } });
+
+					const actions = row.createDiv({ attr: { style: 'display:flex; gap: 6px; align-items: center;' } });
+					const acceptLocal = actions.createEl('button', { text: 'Keep Local', cls: 'mod-cta' });
+					acceptLocal.onclick = async () => {
+						await this.plugin.gitManager.stageFile(p.original);
+						await this.plugin.gitManager.removeConflictCopy(p.copy);
+						await this.refreshContent(container);
+					};
+
+					const acceptRemote = actions.createEl('button', { text: 'Use Remote', cls: 'mod-danger' });
+					acceptRemote.onclick = async () => {
+						if (!confirm(`Replace local ${p.original} with remote version?`)) return;
+						await this.plugin.gitManager.acceptRemoteCopy(p.original, p.copy);
+						await this.refreshContent(container);
+					};
+
+					const openOrig = actions.createEl('button', { text: 'Open Local' });
+					openOrig.onclick = async () => {
+						const af = this.app.vault.getAbstractFileByPath(p.original);
+						if (af) await this.app.workspace.getLeaf().openFile(af as any);
+						else new Notice('File not found: ' + p.original);
+					};
+
+					const openCopy = actions.createEl('button', { text: 'Open Remote Copy' });
+					openCopy.onclick = async () => {
+						const af = this.app.vault.getAbstractFileByPath(p.copy);
+						if (af) await this.app.workspace.getLeaf().openFile(af as any);
+						else new Notice('File not found: ' + p.copy);
+					};
+				}
+			}
+		} catch (e) {
+			conflictsList.createEl('p', { text: 'Error loading conflicts: ' + (e as Error).message });
+		}
+	}
+
+	private async refreshContent(container: HTMLElement) {
+		// Remove all children and re-render pending/conflicts + history
+		container.empty();
+		await this.renderPendingAndConflicts(container);
+		await this.renderHistory(container);
 	}
 
 	onClose() {
