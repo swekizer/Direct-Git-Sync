@@ -1,23 +1,28 @@
 /* global AsyncIterable, AsyncIterableIterator -- Required for Obsidian and isomorphic-git types */
-import { requestUrl, RequestUrlParam, Platform } from "obsidian";
+import { requestUrl, RequestUrlParam, RequestUrlResponse, Platform } from "obsidian";
+
+type GitHttpParams = { url: string, method?: string, headers?: Record<string, string>, body?: Iterable<Uint8Array> | AsyncIterable<Uint8Array> };
+type GitHttpResponse = { url: string, method?: string, headers: Record<string, string>, body?: AsyncIterableIterator<Uint8Array>, statusCode: number, statusMessage: string };
+
+// isomorphic-git/http/node may export a function (default) or an object with a .request method
+interface NodeHttpModule {
+    request?: (params: GitHttpParams) => Promise<GitHttpResponse>;
+    default?: NodeHttpModule | ((params: GitHttpParams) => Promise<GitHttpResponse>);
+}
 
 export const obsidianHttpClient = {
-    async request(params: { url: string, method?: string, headers?: Record<string, string>, body?: Iterable<Uint8Array> | AsyncIterable<Uint8Array> }) {
+    async request(params: GitHttpParams): Promise<GitHttpResponse> {
         // Use Node's streaming HTTP client on Desktop to avoid memory exhaustion (OOM crashes) on large repositories.
         // We must use Obsidian's requestUrl on mobile to bypass CORS, even though it buffers entirely in memory.
         if (Platform.isDesktop) {
             try {
                 // Using dynamic import prevents esbuild from crashing the mobile plugin load
-                type RequestParams = { url: string, method?: string, headers?: Record<string, string>, body?: Iterable<Uint8Array> | AsyncIterable<Uint8Array> };
-                // isomorphic-git/http/node may export a function (default export) or an object with a `request` method.
-                const nodeHttp = (await import('isomorphic-git/http/node')) as unknown;
-                const httpClient = (nodeHttp && (nodeHttp as any).default) || nodeHttp;
+                const nodeHttp = (await import('isomorphic-git/http/node')) as NodeHttpModule;
+                const httpClient = nodeHttp.default ?? nodeHttp;
                 if (typeof httpClient === 'function') {
-                    const result = await (httpClient as any)(params);
-                    return result as { url: string, method?: string, headers: Record<string, string>, body?: AsyncIterableIterator<Uint8Array>, statusCode: number, statusMessage: string };
-                } else if (httpClient && typeof (httpClient as any).request === 'function') {
-                    const result = await (httpClient as any).request(params);
-                    return result as { url: string, method?: string, headers: Record<string, string>, body?: AsyncIterableIterator<Uint8Array>, statusCode: number, statusMessage: string };
+                    return await httpClient(params);
+                } else if (typeof httpClient.request === 'function') {
+                    return await httpClient.request(params);
                 }
             } catch (e) {
                 console.warn('Failed to load Node HTTP client, falling back to Obsidian requestUrl buffer', e);
@@ -29,7 +34,7 @@ export const obsidianHttpClient = {
 };
 
 const bufferedHttpClient = {
-    async request({ url, method, headers, body }: { url: string, method?: string, headers?: Record<string, string>, body?: Iterable<Uint8Array> | AsyncIterable<Uint8Array> }) {
+    async request({ url, method, headers, body }: GitHttpParams): Promise<GitHttpResponse> {
         let requestBody: ArrayBuffer | undefined = undefined;
         
         if (body) {
@@ -69,24 +74,18 @@ const bufferedHttpClient = {
             throw: false // Don't throw on 4xx/5xx, return the response object
         };
 
-        const response = await requestUrl(paramsToPass);
+        const response: RequestUrlResponse = await requestUrl(paramsToPass);
 
         return {
             url,
             method,
             headers: response.headers,
             body: (async function* () {
-            // Ensure we await the arrayBuffer to obtain the bytes rather than yielding a function reference.
-            if (typeof (response as any).arrayBuffer === 'function') {
-                const buf = await (response as any).arrayBuffer();
-                yield new Uint8Array(buf);
-            } else if ((response as any).arrayBuffer) {
-                // Some environments might already have a prepared ArrayBuffer
-                yield new Uint8Array((response as any).arrayBuffer);
-            }
-        })(),
-        statusCode: response.status,
-        statusMessage: String(response.status)
+                // response.arrayBuffer is always a resolved ArrayBuffer in Obsidian's RequestUrlResponse
+                yield new Uint8Array(response.arrayBuffer);
+            })(),
+            statusCode: response.status,
+            statusMessage: String(response.status)
         };
     }
 };

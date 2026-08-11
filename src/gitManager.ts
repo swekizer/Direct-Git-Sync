@@ -322,7 +322,7 @@ export class GitManager {
             // write blob to working dir and add to index
             await this.fs.promises.writeFile(filepath, blob);
             await git.add({ fs: this.fs, dir: this.dir, filepath });
-        } catch (e) {
+        } catch {
             // If file doesn't exist in HEAD, remove it
             try {
                 await this.fs.promises.unlink(filepath);
@@ -341,7 +341,7 @@ export class GitManager {
             await this.fs.promises.writeFile(filepath, blob);
             // stage restored file
             await git.add({ fs: this.fs, dir: this.dir, filepath });
-        } catch (e) {
+        } catch {
             // If not in HEAD, delete working copy
             try {
                 await this.fs.promises.unlink(filepath);
@@ -370,7 +370,7 @@ export class GitManager {
                 } else {
                     result.push(full);
                 }
-            } catch (e) {
+            } catch {
                 // ignore
             }
         }
@@ -403,10 +403,10 @@ export class GitManager {
             // remove copy from fs and index
             try {
                 await this.fs.promises.unlink(copyPath);
-            } catch {}
+            } catch { /* ignore if already deleted */ }
             try {
                 await git.remove({ fs: this.fs, dir: this.dir, filepath: copyPath });
-            } catch {}
+            } catch { /* ignore if not staged */ }
         } catch (e) {
             console.error('Failed to accept remote copy', e);
             throw e;
@@ -416,10 +416,10 @@ export class GitManager {
     async removeConflictCopy(copyPath: string) {
         try {
             await this.fs.promises.unlink(copyPath);
-        } catch {}
+        } catch { /* ignore if already deleted */ }
         try {
             await git.remove({ fs: this.fs, dir: this.dir, filepath: copyPath });
-        } catch {}
+        } catch { /* ignore if not staged */ }
     }
 }
 

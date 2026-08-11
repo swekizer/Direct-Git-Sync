@@ -1,4 +1,4 @@
-import { App, Modal, Notice } from 'obsidian';
+import { App, Modal, Notice, TFile } from 'obsidian';
 import GithubSyncPlugin from './main';
 
 export class SyncModal extends Modal {
@@ -124,7 +124,8 @@ export class SyncModal extends Modal {
 
 					const discardBtn = actions.createEl('button', { text: 'Discard', cls: 'mod-warning' });
 					discardBtn.onclick = async () => {
-						if (!confirm(`Discard local changes to ${file}?`)) return;
+						const confirmed = await confirmDialog(this.app, `Discard local changes to "${file}"?`);
+						if (!confirmed) return;
 						await this.plugin.gitManager.discardLocalChanges(file);
 						await this.refreshContent(container);
 					};
@@ -132,9 +133,9 @@ export class SyncModal extends Modal {
 					const openBtn = actions.createEl('button', { text: 'Open' });
 					openBtn.onclick = async () => {
 						const af = this.app.vault.getAbstractFileByPath(file);
-						if (af) {
+						if (af instanceof TFile) {
 							// open in new leaf
-							await this.app.workspace.getLeaf().openFile(af as any);
+							await this.app.workspace.getLeaf().openFile(af);
 						} else {
 							new Notice('File not found in vault: ' + file);
 						}
@@ -162,31 +163,32 @@ export class SyncModal extends Modal {
 					info.createDiv({ text: `Remote copy: ${p.copy}`, attr: { style: 'color: var(--text-muted); font-size: 0.9em;' } });
 
 					const actions = row.createDiv({ attr: { style: 'display:flex; gap: 6px; align-items: center;' } });
-					const acceptLocal = actions.createEl('button', { text: 'Keep Local', cls: 'mod-cta' });
+					const acceptLocal = actions.createEl('button', { text: 'Keep local', cls: 'mod-cta' });
 					acceptLocal.onclick = async () => {
 						await this.plugin.gitManager.stageFile(p.original);
 						await this.plugin.gitManager.removeConflictCopy(p.copy);
 						await this.refreshContent(container);
 					};
 
-					const acceptRemote = actions.createEl('button', { text: 'Use Remote', cls: 'mod-danger' });
+					const acceptRemote = actions.createEl('button', { text: 'Use remote', cls: 'mod-danger' });
 					acceptRemote.onclick = async () => {
-						if (!confirm(`Replace local ${p.original} with remote version?`)) return;
+						const confirmed = await confirmDialog(this.app, `Replace local "${p.original}" with remote version?`);
+						if (!confirmed) return;
 						await this.plugin.gitManager.acceptRemoteCopy(p.original, p.copy);
 						await this.refreshContent(container);
 					};
 
-					const openOrig = actions.createEl('button', { text: 'Open Local' });
+					const openOrig = actions.createEl('button', { text: 'Open local' });
 					openOrig.onclick = async () => {
 						const af = this.app.vault.getAbstractFileByPath(p.original);
-						if (af) await this.app.workspace.getLeaf().openFile(af as any);
+						if (af instanceof TFile) await this.app.workspace.getLeaf().openFile(af);
 						else new Notice('File not found: ' + p.original);
 					};
 
-					const openCopy = actions.createEl('button', { text: 'Open Remote Copy' });
+					const openCopy = actions.createEl('button', { text: 'Open remote copy' });
 					openCopy.onclick = async () => {
 						const af = this.app.vault.getAbstractFileByPath(p.copy);
-						if (af) await this.app.workspace.getLeaf().openFile(af as any);
+						if (af instanceof TFile) await this.app.workspace.getLeaf().openFile(af);
 						else new Notice('File not found: ' + p.copy);
 					};
 				}
@@ -207,4 +209,18 @@ export class SyncModal extends Modal {
 		const { contentEl } = this;
 		contentEl.empty();
 	}
+}
+
+/** Shows a modal confirmation dialog and resolves to true if the user confirms. */
+function confirmDialog(app: App, message: string): Promise<boolean> {
+	return new Promise((resolve) => {
+		const modal = new Modal(app);
+		modal.contentEl.createEl('p', { text: message });
+		const btnRow = modal.contentEl.createDiv({ attr: { style: 'display:flex; gap:8px; justify-content:flex-end; margin-top:1rem;' } });
+		const cancelBtn = btnRow.createEl('button', { text: 'Cancel' });
+		cancelBtn.onclick = () => { modal.close(); resolve(false); };
+		const confirmBtn = btnRow.createEl('button', { text: 'Confirm', cls: 'mod-warning' });
+		confirmBtn.onclick = () => { modal.close(); resolve(true); };
+		modal.open();
+	});
 }
