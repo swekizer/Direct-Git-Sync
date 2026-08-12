@@ -14,26 +14,23 @@ export class SyncModal extends Modal {
 		contentEl.empty();
 		contentEl.addClass('github-sync-modal');
 
-		const headerContainer = contentEl.createDiv({
-			cls: 'sync-modal-header',
-			attr: { style: 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;' }
-		});
+		const headerContainer = contentEl.createDiv({ cls: 'sync-modal-header' });
 
-		headerContainer.createEl('h2', {
+		const titleGroup = headerContainer.createDiv({ cls: 'sync-modal-title-group' });
+		titleGroup.createEl('p', { text: 'Git plugin', cls: 'sync-modal-eyebrow' });
+		titleGroup.createEl('h2', {
 			text: 'Git sync history',
-			cls: 'sync-modal-title',
-			attr: { style: 'margin: 0;' }
+			cls: 'sync-modal-title'
 		});
 
-		const syncBtn = headerContainer.createEl('button', { text: 'Sync now', cls: 'mod-cta' });
+		const syncBtn = headerContainer.createEl('button', { text: 'Sync now', cls: 'mod-cta sync-primary-action' });
 		syncBtn.onclick = async () => {
 			this.close();
 			await this.plugin.runSync();
 		};
 
 		const content = contentEl.createDiv({
-			cls: 'sync-modal-content',
-			attr: { style: 'max-height: 60vh; overflow-y: auto; padding-right: 10px;' }
+			cls: 'sync-modal-content'
 		});
 		
 		// Render pending changes and conflicts first so users can act before committing
@@ -45,20 +42,20 @@ export class SyncModal extends Modal {
 	private async renderHistory(container: HTMLElement) {
 		const lastSyncTime = this.plugin.settings.lastSyncTime;
 		const syncStatusDiv = container.createDiv({
-			attr: { style: 'padding: 1rem; background-color: var(--background-secondary); border-radius: 8px; margin-bottom: 1rem;' }
+			cls: 'sync-status-card'
 		});
 
 		const timeText = lastSyncTime ? new Date(lastSyncTime).toLocaleString() : 'Never';
 		syncStatusDiv.createEl('h4', {
 			text: 'Last successful sync',
-			attr: { style: 'margin-top: 0; margin-bottom: 0.5rem;' }
+			cls: 'sync-status-title'
 		});
 		syncStatusDiv.createEl('p', {
 			text: timeText,
-			attr: { style: 'margin: 0; color: var(--text-muted);' }
+			cls: 'sync-status-time'
 		});
 
-		container.createEl('h3', { text: 'Recent sync activity', attr: { style: 'margin-bottom: 1rem;' } });
+		container.createEl('h3', { text: 'Recent sync activity' });
 		container.createEl('p', { text: 'Loading history...' });
 
 		try {
@@ -71,28 +68,28 @@ export class SyncModal extends Modal {
 			}
 
 			const listEl = container.createEl('ul', {
-				attr: { style: 'list-style-type: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px;' }
+				cls: 'sync-history-list'
 			});
 
 			for (const commit of history) {
 				const li = listEl.createEl('li', {
-					attr: { style: 'padding: 10px; border: 1px solid var(--background-modifier-border); border-radius: 6px; background-color: var(--background-primary);' }
+					cls: 'sync-history-item'
 				});
 
-				const headerObj = li.createDiv({ attr: { style: 'display: flex; justify-content: space-between; margin-bottom: 4px;' } });
+				const headerObj = li.createDiv({ cls: 'sync-history-item-header' });
 
 				const dateText = new Date(commit.commit.author.timestamp * 1000).toLocaleString();
-				headerObj.createSpan({ text: dateText, attr: { style: 'font-weight: 500; font-size: 0.9em;' } });
+				headerObj.createSpan({ text: dateText, cls: 'sync-history-date' });
 
 				const hash = commit.oid.substring(0, 7);
 				headerObj.createSpan({
 					text: hash,
-					attr: { style: 'font-family: var(--font-monospace); font-size: 0.8em; color: var(--text-muted);' }
+					cls: 'sync-history-hash'
 				});
 
 				li.createEl('div', {
 					text: commit.commit.message,
-					attr: { style: 'font-size: 0.9em; color: var(--text-normal); white-space: pre-wrap;' }
+					cls: 'sync-history-message'
 				});
 			}
 		} catch (e) {
@@ -102,9 +99,9 @@ export class SyncModal extends Modal {
 	}
 
 	private async renderPendingAndConflicts(container: HTMLElement) {
-		const pendingSection = container.createDiv({ attr: { style: 'margin-bottom: 1rem;' } });
-		pendingSection.createEl('h3', { text: 'Pending changes', attr: { style: 'margin-bottom: 0.5rem;' } });
-		const pendingList = pendingSection.createDiv({ attr: { style: 'display: flex; flex-direction: column; gap: 6px;' } });
+		const pendingSection = container.createDiv({ cls: 'sync-section' });
+		pendingSection.createEl('h3', { text: 'Pending changes' });
+		const pendingList = pendingSection.createDiv({ cls: 'sync-list' });
 
 		try {
 			const pending = await this.plugin.gitManager.getPendingFiles();
@@ -113,16 +110,16 @@ export class SyncModal extends Modal {
 			} else {
 				for (const file of pending) {
 					const row = pendingList.createDiv({ cls: 'sync-file-row' });
-					row.createDiv({ text: file, attr: { style: 'flex: 1; word-break: break-all;' } });
+					row.createDiv({ text: file, cls: 'sync-file-path' });
 
-					const actions = row.createDiv({ attr: { style: 'display:flex; gap: 6px; align-items: center;' } });
-					const stageBtn = actions.createEl('button', { text: 'Stage', cls: 'mod-cta' });
-					stageBtn.onclick = async () => {
+					const actions = row.createDiv({ cls: 'sync-file-actions' });
+					const saveBtn = actions.createEl('button', { text: 'Save', cls: 'mod-cta sync-save-action' });
+					saveBtn.onclick = async () => {
 						await this.plugin.gitManager.stageFile(file);
 						await this.refreshContent(container);
 					};
 
-					const discardBtn = actions.createEl('button', { text: 'Discard', cls: 'mod-warning' });
+					const discardBtn = actions.createEl('button', { text: 'Discard', cls: 'sync-discard-action' });
 					discardBtn.onclick = async () => {
 						const confirmed = await confirmDialog(this.app, `Discard local changes to "${file}"?`);
 						if (!confirmed) return;
@@ -130,7 +127,7 @@ export class SyncModal extends Modal {
 						await this.refreshContent(container);
 					};
 
-					const openBtn = actions.createEl('button', { text: 'Open' });
+					const openBtn = actions.createEl('button', { text: 'Open', cls: 'sync-secondary-action' });
 					openBtn.onclick = async () => {
 						const af = this.app.vault.getAbstractFileByPath(file);
 						if (af instanceof TFile) {
@@ -147,9 +144,9 @@ export class SyncModal extends Modal {
 		}
 
 		// Conflicts
-		const conflictsSection = container.createDiv({ attr: { style: 'margin-bottom: 1rem;' } });
-		conflictsSection.createEl('h3', { text: 'Conflicted files', attr: { style: 'margin-bottom: 0.5rem;' } });
-		const conflictsList = conflictsSection.createDiv({ attr: { style: 'display: flex; flex-direction: column; gap: 6px;' } });
+		const conflictsSection = container.createDiv({ cls: 'sync-section' });
+		conflictsSection.createEl('h3', { text: 'Conflicted files' });
+		const conflictsList = conflictsSection.createDiv({ cls: 'sync-list' });
 
 		try {
 			const copies = await this.plugin.gitManager.getConflictCopies();
@@ -158,11 +155,11 @@ export class SyncModal extends Modal {
 			} else {
 				for (const p of copies) {
 					const row = conflictsList.createDiv({ cls: 'sync-file-row conflict-row' });
-					const info = row.createDiv({ attr: { style: 'flex: 1; display:flex; flex-direction: column; gap:4px;' } });
+					const info = row.createDiv({ cls: 'sync-conflict-info' });
 					info.createDiv({ text: `Original: ${p.original}` });
-					info.createDiv({ text: `Remote copy: ${p.copy}`, attr: { style: 'color: var(--text-muted); font-size: 0.9em;' } });
+					info.createDiv({ text: `Remote copy: ${p.copy}`, cls: 'sync-conflict-copy' });
 
-					const actions = row.createDiv({ attr: { style: 'display:flex; gap: 6px; align-items: center;' } });
+					const actions = row.createDiv({ cls: 'sync-file-actions' });
 					const acceptLocal = actions.createEl('button', { text: 'Keep local', cls: 'mod-cta' });
 					acceptLocal.onclick = async () => {
 						await this.plugin.gitManager.stageFile(p.original);
@@ -178,14 +175,14 @@ export class SyncModal extends Modal {
 						await this.refreshContent(container);
 					};
 
-					const openOrig = actions.createEl('button', { text: 'Open local' });
+					const openOrig = actions.createEl('button', { text: 'Open local', cls: 'sync-secondary-action' });
 					openOrig.onclick = async () => {
 						const af = this.app.vault.getAbstractFileByPath(p.original);
 						if (af instanceof TFile) await this.app.workspace.getLeaf().openFile(af);
 						else new Notice('File not found: ' + p.original);
 					};
 
-					const openCopy = actions.createEl('button', { text: 'Open remote copy' });
+					const openCopy = actions.createEl('button', { text: 'Open remote copy', cls: 'sync-secondary-action' });
 					openCopy.onclick = async () => {
 						const af = this.app.vault.getAbstractFileByPath(p.copy);
 						if (af instanceof TFile) await this.app.workspace.getLeaf().openFile(af);
@@ -216,7 +213,7 @@ function confirmDialog(app: App, message: string): Promise<boolean> {
 	return new Promise((resolve) => {
 		const modal = new Modal(app);
 		modal.contentEl.createEl('p', { text: message });
-		const btnRow = modal.contentEl.createDiv({ attr: { style: 'display:flex; gap:8px; justify-content:flex-end; margin-top:1rem;' } });
+		const btnRow = modal.contentEl.createDiv({ cls: 'sync-confirm-actions' });
 		const cancelBtn = btnRow.createEl('button', { text: 'Cancel' });
 		cancelBtn.onclick = () => { modal.close(); resolve(false); };
 		const confirmBtn = btnRow.createEl('button', { text: 'Confirm', cls: 'mod-warning' });

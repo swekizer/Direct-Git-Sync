@@ -1,39 +1,240 @@
-/*
+.github-sync-modal {
+    padding: 0.5rem 0.25rem 0.25rem;
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+.github-sync-modal .sync-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
 
-*/
+.sync-modal-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
 
-.sync-modal-header .mod-cta { }
+.sync-modal-eyebrow {
+    margin: 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-accent);
+}
+
+.github-sync-modal .sync-modal-title {
+    margin: 0;
+    font-size: 2rem;
+    line-height: 1.05;
+}
+
+.sync-primary-action {
+    min-width: 124px;
+    border-radius: 999px;
+    padding: 0.8rem 1.15rem;
+    font-weight: 700;
+    box-shadow: 0 10px 24px color-mix(in srgb, var(--interactive-accent) 26%, transparent);
+}
+
+.sync-modal-content {
+    max-height: 62vh;
+    overflow-y: auto;
+    padding-right: 0.4rem;
+}
+
+.sync-status-card {
+    padding: 1.1rem 1.2rem;
+    margin-bottom: 1.25rem;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 18px;
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--background-secondary) 88%, var(--interactive-accent) 12%), var(--background-secondary));
+}
+
+.sync-status-title {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.05rem;
+}
+
+.sync-status-time {
+    margin: 0;
+    color: var(--text-muted);
+}
+
+.sync-section {
+    margin-bottom: 1.4rem;
+}
+
+.sync-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
 
 .sync-file-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px;
+    gap: 0.9rem;
+    padding: 0.95rem 1rem;
     border: 1px solid var(--background-modifier-border);
-    border-radius: 6px;
-    background: var(--background-primary);
+    border-radius: 16px;
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--background-primary) 92%, white 8%), var(--background-primary));
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.04);
+}
+
+.sync-file-path {
+    flex: 1;
+    word-break: break-all;
+    font-size: 1rem;
+    line-height: 1.45;
+}
+
+.sync-file-actions {
+    display: flex;
+    gap: 0.55rem;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
 .sync-file-row.conflict-row {
-    border-left: 4px solid var(--interactive-danger); /* red */
+    border-left: 4px solid var(--interactive-danger);
+}
+
+.sync-conflict-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.sync-conflict-copy {
+    color: var(--text-muted);
+    font-size: 0.9em;
 }
 
 .sync-file-row .mod-cta {
     background-color: var(--interactive-accent);
+    border-radius: 12px;
+    font-weight: 700;
+    min-width: 88px;
 }
 
 .sync-file-row .mod-danger {
     background-color: var(--interactive-danger);
+    border-radius: 12px;
+    font-weight: 700;
 }
 
-.sync-file-row .mod-warning {
-    background-color: var(--interactive-warning);
+.sync-save-action {
+    min-width: 92px;
+}
+
+.sync-secondary-action,
+.sync-discard-action {
+    border-radius: 12px;
+    min-width: 88px;
+    font-weight: 600;
+    transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+
+.sync-secondary-action {
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+}
+
+.sync-secondary-action:hover {
+    background: var(--background-secondary);
+    border-color: var(--background-modifier-border-hover);
+}
+
+.sync-discard-action {
+    background: var(--background-primary);
+    border: 1px solid color-mix(in srgb, var(--interactive-danger) 26%, var(--background-modifier-border));
+    color: var(--text-normal);
+}
+
+.sync-discard-action:hover {
+    background: var(--interactive-danger);
+    border-color: var(--interactive-danger);
+    color: white;
+    transform: translateY(-1px);
 }
 
 .sync-modal-content h3 {
-    margin: 0 0 6px 0;
+    margin: 0 0 0.7rem 0;
+    font-size: 1.65rem;
+    line-height: 1.1;
+}
+
+.sync-history-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sync-history-item {
+    padding: 1rem 1.05rem;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 16px;
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--background-primary) 94%, white 6%), var(--background-primary));
+}
+
+.sync-history-item-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.35rem;
+}
+
+.sync-history-date {
+    font-weight: 500;
+    font-size: 0.95em;
+}
+
+.sync-history-hash {
+    font-family: var(--font-monospace);
+    font-size: 0.8em;
+    color: var(--text-muted);
+}
+
+.sync-history-message {
+    font-size: 0.9em;
+    color: var(--text-normal);
+    white-space: pre-wrap;
+}
+
+.sync-confirm-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
+
+@media (max-width: 720px) {
+    .github-sync-modal .sync-modal-header,
+    .sync-file-row,
+    .sync-history-item-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .sync-primary-action,
+    .sync-file-row .mod-cta,
+    .sync-secondary-action,
+    .sync-discard-action {
+        width: 100%;
+    }
+
+    .sync-file-actions {
+        width: 100%;
+    }
 }
 

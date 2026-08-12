@@ -198,6 +198,35 @@ npm run dev
 
 The bundled plugin output is `main.js`.
 
+## Release a new version
+
+The repo now supports tag-based GitHub releases for the Obsidian plugin files.
+
+1. Update your code and make sure it is ready to publish.
+2. Run:
+
+```bash
+npm version patch
+```
+
+Use `minor` or `major` instead of `patch` when needed.
+
+3. Push the commit and tag:
+
+```bash
+git push origin main --follow-tags
+```
+
+4. GitHub Actions will automatically:
+
+- install dependencies
+- build `main.js`
+- verify the tag matches `manifest.json`
+- create the GitHub release
+- upload `main.js`, `manifest.json`, and `styles.css`
+
+If you prefer, you can also trigger the `Release Obsidian Plugin` workflow manually from GitHub after pushing a version tag.
+
 ## License
 
 `0BSD`
