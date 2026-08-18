@@ -30,6 +30,56 @@ export class GithubSyncSettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
+	// Declarative settings API for Obsidian 1.9.0+ settings search support.
+	// The method is not yet formally typed in obsidian@1.10.3, so we use
+	// a type assertion to avoid build errors while still satisfying the runtime API.
+	getSettingDefinitions() {
+		return [
+			{
+				id: 'github-repo-url',
+				name: 'GitHub repository URL',
+				desc: 'Full URL to the repository (e.g., https://github.com/user/repo)',
+				type: 'text',
+			},
+			{
+				id: 'github-pat',
+				name: 'Personal access token',
+				desc: 'A GitHub token with repo permissions',
+				type: 'text',
+			},
+			{
+				id: 'author-name',
+				name: 'Author name',
+				desc: 'Name to use for Git commits',
+				type: 'text',
+			},
+			{
+				id: 'author-email',
+				name: 'Author email',
+				desc: 'Email to use for Git commits',
+				type: 'text',
+			},
+			{
+				id: 'auto-sync-enabled',
+				name: 'Enable auto sync',
+				desc: 'Automatically sync your vault at a regular interval.',
+				type: 'toggle',
+			},
+			{
+				id: 'auto-sync-interval',
+				name: 'Sync interval (minutes)',
+				desc: 'How often to auto-sync. Minimum 5 minutes.',
+				type: 'text',
+			},
+			{
+				id: 'ignored-paths',
+				name: 'Files to ignore',
+				desc: "One path per line. These will be added to your vault's .gitignore file.",
+				type: 'textarea',
+			},
+		];
+	}
+
 	display(): void {
 		const {containerEl} = this;
 		containerEl.empty();
