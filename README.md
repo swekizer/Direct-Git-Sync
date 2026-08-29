@@ -83,13 +83,21 @@ Steps:
 1. Open Settings
 2. Open Credentials under Access
 <img width="396" height="480" alt="image" src="https://github.com/user-attachments/assets/3479fcf4-65cb-4a7c-b25d-c1a97e5de852" />
+
 3. Click on Personal access tokens (classic)
+
 4. Click on Generate new token (classic).
+
 5. Write any title under note.
+
 6. Under Expiration select no expiration
+
 7. In Select scope section check the repo checkbox
+
 8. Then click generate token at the end of the page
+
 9. Copy the token somewhere face as you will not be able to see it again
+
 For a classic token, the `repo` scope is enough.
 
 <img width="1650" height="447" alt="image" src="https://github.com/user-attachments/assets/c604d062-2313-4c82-be01-d8f1840a9741" />
