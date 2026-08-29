@@ -124,6 +124,7 @@ Each sync run follows the same sequence:
 On first-time setup, if the remote already contains files that would overwrite local files, the plugin creates local backup copies before checkout.
 
 <img width="182" height="137" alt="image" src="https://github.com/user-attachments/assets/cd9f6bcd-96cf-4895-a906-64f2d3374bab" />
+
 Caption: A sync run verifies the repository, stages local changes, fetches remote updates, merges them, and pushes the final result.
 
 ## Conflicts
