@@ -1,6 +1,6 @@
 # Direct Git Sync
 
-Sync your Obsidian vault directly with a private GitHub repository on desktop and mobile.
+Sync your Obsidian vault directly with a GitHub repository on desktop and mobile.
 
 End to end: open Settings, add your repository URL and token, save, and sync.
 
@@ -8,7 +8,7 @@ Direct Git Sync is built for people who want simple Git-based vault sync without
 
 ## Why
 
-Obsidian Sync is great when you want the official full-vault sync experience. Direct Git Sync is for the case where you want your vault backed by a GitHub repository instead:
+Direct Git Sync is for the case where you want your vault backed by a GitHub repository:
 
 - private notes backed up to GitHub
 - a vault shared across desktop and mobile
@@ -51,7 +51,7 @@ The plugin keeps the workflow intentionally small:
 
 ### Manual install
 
-Download these files from the latest GitHub release into:
+Download these files from the latest GitHub release into .obsidian folder:
 Files required:
 
 - `main.js`
@@ -68,7 +68,7 @@ Caption: The GitHub release should include `main.js`, `manifest.json`, and `styl
 
 ### 1. Create a repository
 
-Create a private GitHub repository for your vault. A typical URL looks like:
+Create a ppublic/private GitHub repository for your vault. A typical URL looks like:
 
 ```text
 https://github.com/your-username/your-repo.git
@@ -94,6 +94,7 @@ For a classic token, the `repo` scope is enough.
 
 <img width="1650" height="447" alt="image" src="https://github.com/user-attachments/assets/c604d062-2313-4c82-be01-d8f1840a9741" />
 Caption: Copy the token and store it somewhere safe
+
 ### 3. Configure the plugin
 
 Open `Settings -> Direct Git Sync` and fill in:
@@ -122,7 +123,7 @@ Each sync run follows the same sequence:
 
 On first-time setup, if the remote already contains files that would overwrite local files, the plugin creates local backup copies before checkout.
 
-![Screenshot placeholder: sync in progress or success notice](docs/images/sync-notice.png)
+<img width="182" height="137" alt="image" src="https://github.com/user-attachments/assets/cd9f6bcd-96cf-4895-a906-64f2d3374bab" />
 Caption: A sync run verifies the repository, stages local changes, fetches remote updates, merges them, and pushes the final result.
 
 ## Conflicts
@@ -170,63 +171,10 @@ Caption: Add extra ignored paths here when you do not want certain vault files o
 ## Security and storage
 
 - Authentication currently uses GitHub personal access tokens over HTTP.
-- SSH keys are not supported.
 - The token is stored in the plugin data file inside your vault.
 - The plugin automatically ignores its own `data.json` so the token is not supposed to be committed by the plugin itself.
 
 Because the token is stored locally, keep your vault and backups private.
 
-## Limitations
-
-- GitHub is the current target workflow described by this plugin.
-- Authentication uses HTTP tokens, not SSH.
-- Large or frequently changing files inside `.obsidian` may create noisy Git history if you choose to track them.
-- Conflict handling is intentionally simple: local wins, remote is preserved as a separate copy.
-
-## Build from source
-
-```bash
-npm install
-npm run build
-```
-
-For development with automatic rebuilds:
-
-```bash
-npm run dev
-```
-
-The bundled plugin output is `main.js`.
-
-## Release a new version
-
-The repo now supports tag-based GitHub releases for the Obsidian plugin files.
-
-1. Update your code and make sure it is ready to publish.
-2. Run:
-
-```bash
-npm version patch
-```
-
-Use `minor` or `major` instead of `patch` when needed.
-
-3. Push the commit and tag:
-
-```bash
-git push origin main --follow-tags
-```
-
-4. GitHub Actions will automatically:
-
-- install dependencies
-- build `main.js`
-- verify the tag matches `manifest.json`
-- create the GitHub release
-- upload `main.js`, `manifest.json`, and `styles.css`
-
-If you prefer, you can also trigger the `Release Obsidian Plugin` workflow manually from GitHub after pushing a version tag.
-
 ## License
-
-`0BSD`
+`MIT`
