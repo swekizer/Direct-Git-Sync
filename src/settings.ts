@@ -22,6 +22,19 @@ export const DEFAULT_SETTINGS: GithubSyncSettings = {
 	ignoredPaths: ''
 }
 
+interface SettingDefinition {
+	name: string;
+	desc: string;
+	// Obsidian sets name/desc itself, then treats a truthy return as a teardown callback.
+	render: (setting: Setting) => void;
+}
+
+interface SettingGroupDefinition {
+	type: 'group';
+	heading?: string;
+	items: SettingDefinition[];
+}
+
 export class GithubSyncSettingTab extends PluginSettingTab {
 	plugin: GithubSyncPlugin;
 
@@ -30,147 +43,144 @@ export class GithubSyncSettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
-	// Declarative settings API for Obsidian 1.9.0+ settings search support.
-	// The method is not yet formally typed in obsidian@1.10.3, so we use
-	// a type assertion to avoid build errors while still satisfying the runtime API.
-	getSettingDefinitions() {
+	// A non-empty return makes Obsidian 1.13+ render the tab from these
+	// definitions instead of calling display().
+	getSettingDefinitions(): SettingGroupDefinition[] {
 		return [
 			{
-				id: 'github-repo-url',
-				name: 'GitHub repository URL',
-				desc: 'Full URL to the repository (e.g., https://github.com/user/repo)',
-				type: 'text',
+				type: 'group',
+				items: [
+					{
+						name: 'GitHub repository URL',
+						desc: 'Full URL to the repository (e.g., https://github.com/user/repo)',
+						render: (setting) => {
+							setting.addText(text => text
+								.setPlaceholder('https://github.com/...')
+								.setValue(this.plugin.settings.githubRepoUrl)
+								.onChange(async (value) => {
+									this.plugin.settings.githubRepoUrl = value;
+									await this.plugin.saveSettings();
+								}));
+						},
+					},
+					{
+						name: 'Personal access token',
+						desc: 'A GitHub token with repo permissions',
+						render: (setting) => {
+							setting.addText(text => {
+								text.inputEl.type = 'password';
+								text
+									.setPlaceholder('Ghp_xxxx')
+									.setValue(this.plugin.settings.githubPat)
+									.onChange(async (value) => {
+										this.plugin.settings.githubPat = value;
+										await this.plugin.saveSettings();
+									});
+							});
+						},
+					},
+					{
+						name: 'Author name',
+						desc: 'Name to use for Git commits',
+						render: (setting) => {
+							setting.addText(text => text
+								.setPlaceholder('Your name')
+								.setValue(this.plugin.settings.authorName)
+								.onChange(async (value) => {
+									this.plugin.settings.authorName = value;
+									await this.plugin.saveSettings();
+								}));
+						},
+					},
+					{
+						name: 'Author email',
+						desc: 'Email to use for Git commits',
+						render: (setting) => {
+							setting.addText(text => text
+								.setPlaceholder('Name@example.com')
+								.setValue(this.plugin.settings.authorEmail)
+								.onChange(async (value) => {
+									this.plugin.settings.authorEmail = value;
+									await this.plugin.saveSettings();
+								}));
+						},
+					},
+				],
 			},
 			{
-				id: 'github-pat',
-				name: 'Personal access token',
-				desc: 'A GitHub token with repo permissions',
-				type: 'text',
+				type: 'group',
+				heading: 'Auto sync',
+				items: [
+					{
+						name: 'Enable auto sync',
+						desc: 'Automatically sync your vault at a regular interval.',
+						render: (setting) => {
+							setting.addToggle(toggle => toggle
+								.setValue(this.plugin.settings.autoSyncEnabled)
+								.onChange(async (value) => {
+									this.plugin.settings.autoSyncEnabled = value;
+									await this.plugin.saveSettings();
+									this.plugin.restartAutoSync();
+								}));
+						},
+					},
+					{
+						name: 'Sync interval (minutes)',
+						desc: 'How often to auto-sync. Minimum 5 minutes.',
+						render: (setting) => {
+							setting.addText(text => text
+								.setPlaceholder('5')
+								.setValue(String(this.plugin.settings.autoSyncInterval))
+								.onChange(async (value) => {
+									const num = parseInt(value, 10);
+									if (!isNaN(num) && num >= 5) {
+										this.plugin.settings.autoSyncInterval = num;
+										await this.plugin.saveSettings();
+										this.plugin.restartAutoSync();
+									}
+								}));
+						},
+					},
+				],
 			},
 			{
-				id: 'author-name',
-				name: 'Author name',
-				desc: 'Name to use for Git commits',
-				type: 'text',
-			},
-			{
-				id: 'author-email',
-				name: 'Author email',
-				desc: 'Email to use for Git commits',
-				type: 'text',
-			},
-			{
-				id: 'auto-sync-enabled',
-				name: 'Enable auto sync',
-				desc: 'Automatically sync your vault at a regular interval.',
-				type: 'toggle',
-			},
-			{
-				id: 'auto-sync-interval',
-				name: 'Sync interval (minutes)',
-				desc: 'How often to auto-sync. Minimum 5 minutes.',
-				type: 'text',
-			},
-			{
-				id: 'ignored-paths',
-				name: 'Files to ignore',
-				desc: "One path per line. These will be added to your vault's .gitignore file.",
-				type: 'textarea',
+				type: 'group',
+				heading: 'Advanced',
+				items: [
+					{
+						name: 'Files to ignore',
+						desc: 'One path per line. These will be added to your vault\'s .gitignore file.',
+						render: (setting) => {
+							setting.addTextArea(text => text
+								.setPlaceholder('my-folder/\nlarge-file.pdf\nnode_modules/')
+								.setValue(this.plugin.settings.ignoredPaths)
+								.onChange(async (value) => {
+									this.plugin.settings.ignoredPaths = value;
+									await this.plugin.saveSettings();
+								}));
+						},
+					},
+				],
 			},
 		];
 	}
 
+	// Used by Obsidian versions that predate the declarative API.
 	display(): void {
 		const {containerEl} = this;
 		containerEl.empty();
 
-		new Setting(containerEl)
-			.setName('GitHub repository URL')
-			.setDesc('Full URL to the repository (e.g., https://github.com/user/repo)')
-			.addText(text => text
-				.setPlaceholder('https://github.com/...')
-				.setValue(this.plugin.settings.githubRepoUrl)
-				.onChange(async (value) => {
-					this.plugin.settings.githubRepoUrl = value;
-					await this.plugin.saveSettings();
-				}));
+		for (const group of this.getSettingDefinitions()) {
+			if (group.heading) {
+				new Setting(containerEl).setName(group.heading).setHeading();
+			}
 
-		new Setting(containerEl)
-			.setName('Personal access token')
-			.setDesc('A GitHub token with repo permissions')
-			.addText(text => {
-				text.inputEl.type = 'password';
-				text
-				.setPlaceholder('Ghp_xxxx')
-				.setValue(this.plugin.settings.githubPat)
-				.onChange(async (value) => {
-					this.plugin.settings.githubPat = value;
-					await this.plugin.saveSettings();
-				});
-            });
-
-		new Setting(containerEl)
-			.setName('Author name')
-			.setDesc('Name to use for Git commits')
-			.addText(text => text
-				.setPlaceholder('Your name')
-				.setValue(this.plugin.settings.authorName)
-				.onChange(async (value) => {
-					this.plugin.settings.authorName = value;
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
-			.setName('Author email')
-			.setDesc('Email to use for Git commits')
-			.addText(text => text
-				.setPlaceholder('Name@example.com')
-				.setValue(this.plugin.settings.authorEmail)
-				.onChange(async (value) => {
-					this.plugin.settings.authorEmail = value;
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl).setName('Auto sync').setHeading();
-
-		new Setting(containerEl)
-			.setName('Enable auto sync')
-			.setDesc('Automatically sync your vault at a regular interval.')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.autoSyncEnabled)
-				.onChange(async (value) => {
-					this.plugin.settings.autoSyncEnabled = value;
-					await this.plugin.saveSettings();
-					this.plugin.restartAutoSync();
-				}));
-
-		new Setting(containerEl)
-			.setName('Sync interval (minutes)')
-			.setDesc('How often to auto-sync. Minimum 5 minutes.')
-			.addText(text => text
-				.setPlaceholder('5')
-				.setValue(String(this.plugin.settings.autoSyncInterval))
-				.onChange(async (value) => {
-					const num = parseInt(value, 10);
-					if (!isNaN(num) && num >= 5) {
-						this.plugin.settings.autoSyncInterval = num;
-						await this.plugin.saveSettings();
-						this.plugin.restartAutoSync();
-					}
-				}));
-
-		new Setting(containerEl).setName('Advanced').setHeading();
-
-		new Setting(containerEl)
-			.setName('Files to ignore')
-			.setDesc('One path per line. These will be added to your vault\'s .gitignore file.')
-			.addTextArea(text => text
-				.setPlaceholder('my-folder/\nlarge-file.pdf\nnode_modules/')
-				.setValue(this.plugin.settings.ignoredPaths)
-				.onChange(async (value) => {
-					this.plugin.settings.ignoredPaths = value;
-					await this.plugin.saveSettings();
-				}));
+			for (const item of group.items) {
+				const setting = new Setting(containerEl)
+					.setName(item.name)
+					.setDesc(item.desc);
+				item.render(setting);
+			}
+		}
 	}
 }
-
