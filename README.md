@@ -68,7 +68,7 @@ Caption: The GitHub release should include `main.js`, `manifest.json`, and `styl
 
 ### 1. Create a repository
 
-Create a ppublic/private GitHub repository for your vault. A typical URL looks like:
+Create a public/private GitHub repository for your vault. A typical URL looks like:
 
 ```text
 https://github.com/your-username/your-repo.git
